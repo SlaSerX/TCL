@@ -1,0 +1,16 @@
+Youtube Title                                            jotham.read@gmail.com
+
+Detects if someone pastes a Youtube URL in a channel and then prints the title
+of the Youtube video and (if enabled) a TinyURL link to the video.  This new v
+ersion uses the http oembed api for faster response times.
+
+Changes:
+    0.5 01/02/09
+      Added better error reporting for restricted youtube content.
+    0.4 10/11/09
+      Changed title scraping method to use the oembed api.
+      Added crude JSON decoder library.
+    0.3 02/03/09
+      Fixed entity decoding problems in return titles.
+      Added customisable response format.
+      Fixed rare query string bug.

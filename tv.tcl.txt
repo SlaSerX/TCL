@@ -1,0 +1,180 @@
+setudef flag tv
+
+package require http
+namespace eval etelevision {
+
+# prez kakuv interval da moje da se polzva !tv ( anti flood protection )
+# v sekundi
+variable etvaf 10
+
+# Kak da izprashta bota msg-tata?  
+# 1 - na private
+# 2 - v kanala
+# 3 - kato notice na nicka
+# 4 - kato notice v kanala ( nepreporychitelno )
+variable ehow 2
+
+
+#nedei pipa nadolu ako ne razbirash
+
+bind pub - !tv [namespace current]::etvdir
+bind msg - tv [namespace current]::etvdirm
+proc etvdirm {n u h t} {
+set c $n
+etvdir $n $u $h $c $t
+}
+
+proc etvdir {n u h c t} {
+	variable etvaf
+	variable ctime
+	if {[info exists ctime]} {
+		set diff [expr [clock seconds] - $ctime]
+		if {$diff < $etvaf} {
+			output $n $c "Izchakai [expr $etvaf - $diff] sekundi i probvai pak..."
+			return 0
+		}
+	catch { unset diff }
+	}
+set kanal [lindex $t 0]
+set nlines 0
+switch $kanal {
+	film+ {set kanal 183}
+	ring {set kanal 33}
+	ringbg {set kanal 33}
+	thevoice {set kanal 109}
+	tv+ {set kanal 146}
+	novasport {set kanal 167}
+	planetahd {set kanal 177}
+	planetafolk {set kanal 114}
+	tv7 {set kanal 70}
+	hobitv {set kanal 80}
+	boomerang {set kanal 122}
+	cartoonnetwork {set kanal 6}
+	axncrime {set kanal 87}
+	axnscifi {set kanal 88}
+	cinemax {set kanal 90}
+	cinemax2 {set kanal 105}
+	discoveryscience {set kanal 98}
+	discoveryworld {set kanal 99}
+	eurosport2 {set kanal 101}
+	foxcrime {set kanal 86}
+	hbocomedy {set kanal 89}
+	history {set kanal 143}
+	historyhd {set kanal 166}
+	natgeowild {set kanal 150}
+	natgeo {set kanal 27}
+	vexplorer {set kanal 91}
+	vhistory {set kanal 7}
+	vnature {set kanal 168}
+	zonereality {set kanal 93}
+	zoneromantica {set kanal 94}
+	
+	bbt {set kanal 8}
+	btv {set kanal 12}
+	fentv {set kanal 71}
+	foxlife {set kanal 69}
+	btvcomedy {set kanal 68}
+	btvaction {set kanal 117}
+	btvcinema {set kanal 153}
+	msat {set kanal 24}
+	bcable {set kanal 5}
+	diema+ {set kanal 9}
+	diema2 {set kanal 63}
+	diemafamily {set kanal 79}
+	evrokom {set kanal 14}
+	kanal1 {set kanal 21}
+	kanal3 {set kanal 19}
+	ntv {set kanal 28}
+	skat {set kanal 38}
+	planeta {set kanal 60}
+	HTB { set kanal 29}
+	aplanet {set kanal 65}
+	axn {set kanal 64}
+	cnn {set kanal 49}
+	hallmark { set kanal 16}
+	hbo { set kanal 58}
+	mcm { set kanal 50}
+	mtv {set kanal 25}
+	vox {set kanal 47}
+	bnc {set kanal 21}
+	discovery {set kanal 10}
+	eurosport {set kanal 13}
+	traveltv {set kanal 154}
+	default {set kanal -}
+}
+    if {$c != $n && ![channel get $c tv]} {return 0}
+if {$kanal == "-"} { output $n $c "Nevaliden TV kanal";return }
+set ctime [clock seconds]
+  	set agent "Mozilla/5.0 (X11; Linux i686; rv:2.0.1) Gecko/20100101 Firefox/4.1.[strftime %S]"
+	set http [::http::config -useragent $agent] 
+set url "http://tv.dir.bg/tv_kanal_dnevna.php?id=$kanal"
+if {[catch {set data [::http::geturl $url -timeout 25000]} err]} { putlog "$err"}
+set chour [clock format $ctime -format %H]
+if {$chour == "01"} {set chour 1} elseif {$chour == "02"} {set chour 2} elseif {$chour == "03"} {set chour 3} elseif {$chour == "04"} {set chour 4} elseif {$chour == "05"} {set chour 5
+} elseif {$chour == "06"} {set chour 6} elseif {$chour == "07"} {set chour 7} elseif {$chour == "08"} {set chour 8} elseif {$chour == "09"} {set chour 9}
+set data [encoding convertto cp1251 [::http::data $data]]
+set listp ""
+regsub -all "\n" $data "" data
+if {[lindex $t 1] != "" && [lindex $t 1] != "utre"} {set chour [lindex [split [lindex $t 1] ":"] 0]}
+set atime [expr $chour + 10]
+set btime [expr {$chour - 1}]
+if {[regexp {<td width="10%" bgcolor="#FFFFFF" class="gray_112" colspan="2"  id="progo">(.*?)</td></tr>} $data -> tvp]} {
+regsub -all "                              " $tvp "\n" tvp
+regsub -all "<br /><span class=\"SiteDescription1\"><b>" $tvp "" tvp
+regsub -all "<span class=\"blue_ar_11\">" $tvp "" tvp
+regsub -all "</b></span>" $tvp "" tvp
+regsub -all "</span></a>" $tvp "" tvp
+regsub -all "<a href=\"(.*?)\">" $tvp "" tvp
+regsub -all "                " $tvp "\n" tvp
+regsub -all "\;" $tvp "" tvp
+regsub -all "\"" $tvp "" tvp
+set time [lindex $tvp 0]
+set what [lrange $tvp 1 e]
+
+append listp "$tvp \n"
+
+} 
+	if {$listp != ""} { foreach ll [split $listp \n]  {
+		set time [lindex $ll 0]
+		set what [lrange $ll 1 e]
+		set ftime [lindex [split $time "."] 0]
+		if { $ftime >= $btime && $ftime <= $atime } {
+		incr nlines; if { $nlines > 5 } { break }
+		output $c $c "$time, $what"
+			}
+		}
+	}
+  ::http::cleanup $data
+}
+bind pub - !programs [namespace current]::list
+bind msg - programs [namespace current]::listm
+proc listm {n u h t} {
+	[namespace current]::list $n $u $h $n $t
+}
+proc list {n u h c t} {
+output $n $c "Nalichnite programi sa : bbt, btv, fentv, foxlife, btvcomedy, btvaction, btvcinema, msat, traveltv, bcable, diema+, diema2, evrokom, kanal1 (bnt), kanal3, ntv, skat, planeta, HTB, aplanet, axn, cnn, hallmark, hbo, mcm, mtv, vox, discovery, eurosport"
+output $n $c "film+, ringbg, thevoice, tv+, novasport, planetahd, planetafolk, tv7, hobitv, boomerang, cartoonnetwork, axncrime, axnscifi, cinemax, cinemax2, discoveryscience, discoveryworld, eurosport2, foxcrime, hbocomedy, history, historyhd, natgeowild, natgeo, vexplorer, vhistory, vnature, zonereality, zoneromantica"
+}
+bind pub - !tvhelp [namespace current]::e:tvhelp
+bind msg - tvhelp [namespace current]::e:tvhelpm
+proc e:tvhelpm {n u h t} {
+	e:tvhelp $n $u $h $n $t
+}
+proc e:tvhelp {n u h c t} {
+	output $n $c "Public (v Kanala) Komandi:"
+	output $n $c "!programs - iskarva vsichki podarjani programi na bota za koito moje da vi dade programata"
+	output $n $c "!tv ime kanal \[chas\] \[utre\] - iskarva programata za dadeniq kanal koito se poiskali"
+	output $n $c " Private (na lichna) komandi: syshtite no bez !"
+}
+proc output {n c t} {
+	variable ehow
+	switch $ehow {
+		1 { putquick "PRIVMSG $n :$t" }
+		2 { putquick "PRIVMSG $c :$t" }
+		3 { putquick "NOTICE $n :$t" }
+		4 { putquick "NOTICE $c :$t" }
+		default { putquick "PRIVMSG $c :$t" }
+	}
+}
+
+}

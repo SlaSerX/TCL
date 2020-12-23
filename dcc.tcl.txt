@@ -1,0 +1,44 @@
+# dcc sends/recieves por Marco Ferra aka nXistence
+# http://clientes.netvisao.pt/mferra/
+# marcoferra@netvisao.pt
+# versao 1.0
+
+# !get <file>, !getlist
+
+# por aqui a path ate' 'a filesystem do bot
+set filesdir "/home/kossy/eggdrop/download/"
+
+bind pub - !get pub:get
+
+proc pub:get {nick uhost hand chan file} {
+  global filesdir
+  if {$file != ""} {
+    switch -- [dccsend $filesdir/$file $nick] {
+    0 {
+      puthelp "NOTICE $nick :sending $file to you."
+      dccsend $file $nick
+    }
+    1 { puthelp "NOTICE $nick :dcc table is full (too many connections), try to get $file later." }
+    2 { puthelp "NOTICE $nick :can't open a socket for the transfer of $file." }
+    3 { puthelp "NOTICE $nick :$file doesn't exist." }
+    4 { puthelp "NOTICE $nick :$file was queued for later transfer." }
+    }
+  } else { puthelp "NOTICE $nick :!get <file> or !getlist" }
+}
+
+bind pub - !getlist pub:getlist
+
+proc pub:getlist {nick uhost handle chan arg} {
+  global filesdir
+  if {$arg != ""} { set cdir $filesdir/$arg } else { set cdir $filesdir }
+  set tdir [pwd]
+  cd $cdir
+  foreach fil "[glob *]" {
+    if {[file isdirectory $fil]} { puthelp "NOTICE $nick :$arg/$fil" }
+    if {[file isfile $fil]} { puthelp "NOTICE $nick :$arg/$fil (size: [file size $fil] bytes)" }
+  }
+  puthelp "NOTICE $nick :end of getlist!"
+  cd $tdir
+}
+
+putlog "tcl: dcc sends/recieves loaded"
